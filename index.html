@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html >
+  <head>
+    <meta charset="UTF-8">
+    <title>map test</title>
+
+    <style type="text/css">
+
+
+
+           #map {    
+    position:absolute;
+    top:50px;
+    left:10px;
+    width:80%;
+    height: 85%; 
+           }
+
+
+  .legend {
+    font-size: 12px;
+  }
+  rect {
+    stroke-width: 2;
+  }
+
+
+.tooltip1 {
+  background: #eee;
+  box-shadow: 0 0 5px #999999;
+  color: #333;
+  display: none;
+  font-size: 12px;
+  left: 130px;
+  padding: 10px;
+  position: absolute;
+  text-align: center;
+  top: 95px;
+  width: 80px;
+  z-index: 10;
+}
+
+
+.tooltip2 {
+  background: #eee;
+  box-shadow: 0 0 5px #999999;
+  color: #333;
+  display: none;
+  font-size: 12px;
+  left: 130px;
+  padding: 10px;
+  position: absolute;
+  text-align: center;
+  top: 95px;
+  width: 80px;
+  z-index: 10;
+}
+
+       </style>
+
+  </head> 
+    <body>    
+        <div id='map'></div>      
+
+
+        <script src='http://cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.js'></script>
+        <script src='http://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js'></script>
+        <script src='https://cdn.rawgit.com/markmarkoh/datamaps/master/dist/datamaps.world.min.js'></script>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.min.js'></script> 
+
+
+        <script> 
+
+/*
+################ READ AND SEND DATA  ##################
+-------------------------------------------
+*/
+
+    var data_map;
+
+    d3.csv("./cities.csv", function(error, dataset) {
+
+    //map
+    data_map = d3.nest().key(function(d) {return d.country;} )
+                        .rollup(function(v) {return {"access": _.compact(_.map(v, function(d) {return  d.accessToElectricity;          })),
+                                                      "fossil": _.compact(_.map(v, function(d) {return  d.ElectricityFromFossilFuels;          })),
+                                                      "nuclear": _.compact(_.map(v, function(d) {return  d.ElectricityFromNuclear;          })),
+                                                      "renewable": _.compact(_.map(v, function(d) {return  d.ElectricityFromRenewables;          })),
+                                                        "share": _.compact(_.map(v, function(d) {return d.renewableEnergyShareInTheTotalFinalEnergyConsumption ;          }))}})
+                        .map(dataset);
+                        
+
+                        /*console.log(data_map);*/
+    for (var key in data_map){
+        if (parseFloat(data_map[key].share)<16.5){ 
+            data_map[key].fillKey='Less then 16.5%'; } 
+            else if (parseFloat(data_map[key].share)>16.6 && parseFloat(data_map[key].share)<33){
+            data_map[key].fillKey='Between 16.5% and 33%';} 
+            else if (parseFloat(data_map[key].share)>33.1 && parseFloat(data_map[key].share)<49.5){
+            data_map[key].fillKey='Between 33% and 49.5%';}
+            else if (parseFloat(data_map[key].share)>49.6 && parseFloat(data_map[key].share)<66){
+            data_map[key].fillKey='Between 49.5% and 66%';}
+            else if (parseFloat(data_map[key].share)>66.1 && parseFloat(data_map[key].share)<82.5){
+            data_map[key].fillKey='Between 66% and 82.5%';}
+            else if (parseFloat(data_map[key].share)>82.6){
+            data_map[key].fillKey='More then 82.5%';}
+        }
+        
+
+    for (var key in data_map){
+      if(data_map[key].share.length>=2 || data_map[key].access.length>=2){
+        console.log([key,data_map[key]])
+      }
+    }
+    map.updateChoropleth(data_map);           
+
+    });
+ /*
+###########################MAP##################################
+*/
+     var map = new Datamap({
+       element: document.getElementById("map"),
+       projection: 'mercator',
+       
+       geographyConfig: {
+         highlightBorderColor: '#1a2a3ac',
+         highlightFillColor: '#18191a',
+         popupTemplate: function(geography, data) {
+           var access = (data.access.length >0) ? ('Access to electricity (% of population):<br />').bold() + data.access.join('<br />') + '<br />' : "";
+           var fossil = (data.fossil.length >0) ? ('Electricity from fossil fuels (TWh):<br />').bold() + data.fossil.join('<br />') + '<br />' : "";
+           var renewable = (data.fossil.length >0) ? ('Electricity from renewables (TWh):<br />').bold() + data.renewable.join('<br />') + '<br />' : "";
+           var nuclear = (data.fossil.length >0) ? ('Electricity from nuclear (TWh):<br />').bold() + data.nuclear.join('<br />') + '<br />' : "";
+           var share = (data.share.length>0) ? ('Renewable energy share in the total <br /> final energy consumption (%) :<br />').bold() + 
+                        data.share.join('<br />') + '<br />' : "";
+           return '<div class="hoverinfo">'+'In ' + geography.properties.name + '<br />'+access+share+fossil+renewable+nuclear;},
+         highlightBorderWidth: 3
+       },
+       fills: {
+         defaultFill: "#808080",
+         "Less then 16.5%": "#ec204f",
+         "Between 16.5% and 33%": "#fd673a",
+         "Between 33% and 49.5%": "#ff922c",         
+         "Between 49.5% and 66%" : "#feed47",
+         "Between 66% and 82.5%" : "#8de45f",
+         "More then 82.5%" : "#2ecf03",
+         "No Data available" : "#808080"
+       },
+       data : {}
+              });
+            map.legend();
+
+        </script>
+     <h2>
+      What is the share of renewable energies in various countries around the world in 2019? 
+     </h2>
+    </body>
+
+</html>
+
+
+
